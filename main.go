@@ -11,9 +11,20 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-func eventPoll(eventChan chan termbox.Event) {
+func eventPoll(playerPaddle *types.Paddle) {
 	for {
-		eventChan <- termbox.PollEvent()
+		event := termbox.PollEvent()
+		if event.Key == termbox.KeyArrowDown {
+			playerPaddle.Y++
+			playerPaddle.Y2++
+		}
+		if event.Key == termbox.KeyArrowUp {
+			playerPaddle.Y--
+			playerPaddle.Y2--
+		}
+		if event.Key == termbox.KeyEsc {
+			playerPaddle.Y = -20
+		}
 	}
 }
 func main() {
@@ -33,31 +44,16 @@ func main() {
 	playerPaddle.Init(true, Mwidth, Mheight)
 	compPaddle.Init(false, Mwidth, Mheight)
 	drawfunc.DrawScreen(compPaddle, playerPaddle, ball, Mheight, Mwidth)
-	eventChan := make(chan termbox.Event)
-	go eventPoll(eventChan)
+	go eventPoll(&playerPaddle)
 	for { // game loop
-		select {
-		case event := <-eventChan:
-			if event.Key == termbox.KeyArrowDown {
-				playerPaddle.Y++
-				playerPaddle.Y2++
-			}
-			if event.Key == termbox.KeyArrowUp {
-				playerPaddle.Y--
-				playerPaddle.Y2--
-			}
-			if event.Key == termbox.KeyEsc {
-				goto exit
-			}
-
-		default:
-			drawfunc.DrawScreen(compPaddle, playerPaddle, ball, Mheight, Mwidth)
-			ball.UpdateBallPos()
-			gamefunc.CheckBallCollision(playerPaddle, compPaddle, &ball, Mwidth, Mheight)
-			gamefunc.CompPaddleAi(ball, &compPaddle, Mwidth, Mheight)
-			time.Sleep(50 * time.Millisecond)
-
+		drawfunc.DrawScreen(compPaddle, playerPaddle, ball, Mheight, Mwidth)
+		ball.UpdateBallPos()
+		gamefunc.CheckBallCollision(playerPaddle, compPaddle, &ball, Mwidth, Mheight)
+		gamefunc.CompPaddleAi(ball, &compPaddle, Mwidth, Mheight)
+		if playerPaddle.Y == -20 {
+			return
 		}
+		time.Sleep(50 * time.Millisecond)
+
 	}
-exit:
 }
